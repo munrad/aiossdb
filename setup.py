@@ -15,13 +15,16 @@ def get_packages(package):
             if os.path.exists(os.path.join(dirpath, '__init__.py'))]
 
 
+with open('README.md', 'r', encoding='utf-8') as f:
+    readme = f.read()
+
 setup(
     name='aiossdb',
     version=get_version('aiossdb'),
     author='Kevin',
     author_email='dgt_x@foxmail.com',
     description='aiossdb is a library for accessing a ssdb database from the asyncio',
-    long_description='aiossdb is a library for accessing a ssdb database from the asyncio',
+    long_description=readme,
     license='MIT',
     keywords='aiossdb',
     packages=get_packages('aiossdb'),
