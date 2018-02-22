@@ -14,7 +14,7 @@ _NOTSET = object()
 
 
 async def create_connection(address, *, password=None, encoding='utf-8', parser=None, loop=None,
-                      timeout=None, connect_cls=None, reusable=True):
+                            timeout=None, connect_cls=None, reusable=True):
     '''
     创建SSDB数据库连接
     :param address: 类似于socket的地址，如果是tuple或者list，则应该是(host, port)这种形式，

@@ -7,7 +7,7 @@ from .log import logger
 
 
 async def create_pool(address, *, password=None, encoding='utf-8', minsize=1, maxsize=10,
-                parser=None, loop=None, timeout=None, pool_cls=None, connection_cls=None):
+                      parser=None, loop=None, timeout=None, pool_cls=None, connection_cls=None):
     if pool_cls is None:
         pool_cls = SSDBConnectionPool
 
