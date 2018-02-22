@@ -18,17 +18,17 @@ class Client:
 
         self._pool = None
 
-    @asyncio.coroutine
-    def get_pool(self):
+    async def get_pool(self):
         if self._pool is None:
-            self._pool = yield from create_pool((self.host, self.port), password=self.password, loop=self.loop,
-                                                timeout=self.timeout, maxsize=self.max_connection)
+            self._pool = await create_pool(
+                (self.host, self.port), password=self.password, loop=self.loop,
+                timeout=self.timeout, maxsize=self.max_connection
+            )
         return self._pool
 
-    @asyncio.coroutine
-    def execute(self, cmd, *args):
-        pool = yield from self.get_pool()
-        res = yield from pool.execute(cmd, *args)
+    async def execute(self, cmd, *args):
+        pool = await self.get_pool()
+        res = await pool.execute(cmd, *args)
         return res
 
     def __getattr__(self, item):
@@ -37,9 +37,8 @@ class Client:
 
         return self.__dict__[item]
 
-    @asyncio.coroutine
-    def close(self):
+    async def close(self):
         if self._pool:
             self._pool.close()
-            yield from self._pool.wait_closed()
+            await self._pool.wait_closed()
             self._pool = None

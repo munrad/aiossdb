@@ -1,28 +1,44 @@
-#coding=utf-8
+# coding=utf-8
+import os
+import re
+
 from setuptools import setup
-import aiossdb
-packages = [
-    'aiossdb'
-]
+
+
+def get_version(package):
+    init_py = open(os.path.join(package, '__init__.py')).read()
+    return re.search("__version__ = ['\"]([^'\"]+)['\"]", init_py).group(1)
+
+
+def get_packages(package):
+    return [dirpath for dirpath, dirnames, filenames in os.walk(package)
+            if os.path.exists(os.path.join(dirpath, '__init__.py'))]
+
+
 setup(
-    name="aiossdb",
-    version=aiossdb.__version__,
-    author="Kevin",
-    author_email="dgt_x@foxmail.com",
-    description="aiossdb is a library for accessing a ssdb database from the asyncio",
-    long_description="aiossdb is a library for accessing a ssdb database from the asyncio",
-    license="MIT",
-    keywords="aiossdb",
-    packages=packages,
-    package_dir={'aiossdb': 'aiossdb'},
+    name='aiossdb',
+    version=get_version('aiossdb'),
+    author='Kevin',
+    author_email='dgt_x@foxmail.com',
+    description='aiossdb is a library for accessing a ssdb database from the asyncio',
+    long_description='aiossdb is a library for accessing a ssdb database from the asyncio',
+    license='MIT',
+    keywords='aiossdb',
+    packages=get_packages('aiossdb'),
+    extras_require={
+        'tests': [
+            'pytest',
+            'pytest-cov',
+            'pytest-asyncio',
+        ],
+    },
     classifiers=[
-        'Programming Language :: Python',
-        'Programming Language :: Python 3',
+        'Development Status :: 3 - Alpha',
+        'Programming Language :: Python :: 3',
+        'Programming Language :: Python :: 3.6',
         'Intended Audience :: Developers',
-        'License :: Jinchongzi Licence',
-        'Operating System :: Mac OS',
+        'License :: OSI Approved :: MIT License',
+        'Operating System :: OS Independent',
         'Topic :: Software Development :: Libraries :: Python Modules',
     ],
-    include_package_data=True,
-    extras_require={},
 )

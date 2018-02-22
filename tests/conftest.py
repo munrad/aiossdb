@@ -16,10 +16,9 @@ def create_connection(event_loop):
 
     conns = []
 
-    @asyncio.coroutine
-    def f(*args, **kwargs):
+    async def f(*args, **kwargs):
         kwargs.setdefault('loop', event_loop)
-        conn = yield from aiossdb.create_connection(*args, **kwargs)
+        conn = await aiossdb.create_connection(*args, **kwargs)
         # 这里要关闭连接，因为是协程，所以不能直接使用yield，必须使用return
         # 那么就得想个办法来处理这些连接
         conns.append(conn)
@@ -41,10 +40,9 @@ def create_connection(event_loop):
 def create_connection_pool(event_loop):
     pools = []
 
-    @asyncio.coroutine
-    def f(*args, **kwargs):
+    async def f(*args, **kwargs):
         kwargs.setdefault('loop', event_loop)
-        pool = yield from aiossdb.create_pool(*args, **kwargs)
+        pool = await aiossdb.create_pool(*args, **kwargs)
         # 这里要关闭连接，因为是协程，所以不能直接使用yield，必须使用return
         # 那么就得想个办法来处理这些连接
         pools.append(pool)

@@ -13,8 +13,7 @@ MAX_CHUNK_SIZE = 65536
 _NOTSET = object()
 
 
-@asyncio.coroutine
-def create_connection(address, *, password=None, encoding='utf-8', parser=None, loop=None,
+async def create_connection(address, *, password=None, encoding='utf-8', parser=None, loop=None,
                       timeout=None, connect_cls=None, reusable=True):
     '''
     创建SSDB数据库连接
@@ -48,8 +47,7 @@ def create_connection(address, *, password=None, encoding='utf-8', parser=None, 
     # asyncio.open_connection创建套接字连接，返回reader和writer对象，它也是一个协程
     # 实际调用的是loop.create_connection
     # wait_for函数提供等待Future或者协程完成直到超时的功能，返回协程或者Future的结果
-    reader, writer = yield from asyncio.wait_for(asyncio.open_connection(host, port, loop=loop),
-                                                 timeout, loop=loop)
+    reader, writer = await asyncio.wait_for(asyncio.open_connection(host, port, loop=loop), timeout, loop=loop)
     sock = writer.transport.get_extra_info('socket')
     if sock is not None:
         # 设置端口重用
@@ -65,10 +63,10 @@ def create_connection(address, *, password=None, encoding='utf-8', parser=None, 
 
     try:
         if password is not None:
-            yield from conn.auth(password)
+            await conn.auth(password)
     except Exception:
         conn.close()
-        yield from conn.wait_closed()
+        await conn.wait_closed()
         raise
     return conn
 
@@ -103,14 +101,13 @@ class SSDBConnection:
     def __repr__(self):
         return '<SSDBConnection [host:{}-port:{}]>'.format(self._address[0], self._address[1])
 
-    @asyncio.coroutine
-    def _read_data(self):
+    async def _read_data(self):
         # 在一个套接字生存期中，无限循环，直到断开连接，接收到EOF字符
         # self._reader.at_eof()在调用feed_eof()并且buffer为空的时候为True
         while not self._reader.at_eof():
             try:
                 # 调用一个协程读取数据，每次只有全部读取完毕后才会返回数据
-                data = yield from self._reader.read(MAX_CHUNK_SIZE)
+                data = await self._reader.read(MAX_CHUNK_SIZE)
             except asyncio.CancelledError:
                 # 协程被取消，说明连接断开
                 break
@@ -192,10 +189,9 @@ class SSDBConnection:
             else:
                 waiter.set_exception(exc)
 
-    @asyncio.coroutine
-    def wait_closed(self):
+    async def wait_closed(self):
         """协程 等待直到套接字连接关闭，防止self._close_waiter被取消"""
-        yield from asyncio.shield(self._close_waiter, loop=self._loop)
+        await asyncio.shield(self._close_waiter, loop=self._loop)
 
     @property
     def closed(self):

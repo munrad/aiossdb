@@ -20,8 +20,7 @@ def set_exception(fut, exception):
         fut.set_exception(exception)
 
 
-@asyncio.coroutine
-def wait_ok(fut):
-    yield from fut
+async def wait_ok(fut):
+    await fut
     return True
 

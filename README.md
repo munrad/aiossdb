@@ -7,7 +7,7 @@ aiossdb is a library for accessing a ssdb database from the asyncio
 Requirements
 ------------
 
-- Python 3.5+
+- Python 3.6+
 
 DONE and TODO
 -------------
@@ -34,13 +34,12 @@ loop = asyncio.new_event_loop()
 asyncio.set_event_loop(loop)
 
 
-@asyncio.coroutine
-def just_look():
+async def just_look():
     c = Client(loop=loop)
-    yield from c.set('a', 1)
-    res = yield from c.get('a')
+    await c.set('a', 1)
+    res = await c.get('a')
     print(res)
-    yield from c.close()
+    await c.close()
     return res
 
 loop.run_until_complete(just_look())
@@ -56,25 +55,24 @@ from aiossdb import create_pool
 loop = asyncio.get_event_loop()
 
 
-@asyncio.coroutine
-def connect_tcp():
-    pool = yield from create_pool(('localhost', 8888), loop=loop, minsize=5, maxsize=10)
+async def connect_tcp():
+    pool = await create_pool(('localhost', 8888), loop=loop, minsize=5, maxsize=10)
 
     # 使用pool直接执行命令
-    yield from pool.execute('set', 'a', 2)
-    val = yield from pool.execute('hget', 'hash_name', 'hash_key')
+    await pool.execute('set', 'a', 2)
+    val = await pool.execute('hget', 'hash_name', 'hash_key')
     print(val)
 
     # 使用pool获取连接
-    conn, addr = yield from pool.get_connection()
-    yield from conn.execute('set', 'a', 2)
-    val = yield from conn.execute('hget', 'hash_name', 'hash_key')
+    conn, addr = await pool.get_connection()
+    await conn.execute('set', 'a', 2)
+    val = await conn.execute('hget', 'hash_name', 'hash_key')
     print(val)
     # 获取的连接最后一定要release
-    yield from pool.release(conn)
+    await pool.release(conn)
 
     pool.close()
-    yield form pool.wait_closed()
+    await pool.wait_closed()
 
 loop.run_until_complete(connect_tcp())
 loop.close()
@@ -84,7 +82,7 @@ loop.close()
 
 ```
 try:
-    val = yield from conn.execute('hget', 'hash_name', 'hash_key')
+    val = await conn.execute('hget', 'hash_name', 'hash_key')
 except ReplyError as e:
     print("错误类型是: {}".format(e.etype))
     print("执行的命令是: {}".format(e.command))
@@ -100,15 +98,14 @@ from aiossdb import create_connection, ReplyError
 loop = asyncio.get_event_loop()
 
 
-@asyncio.coroutine
-def connect_tcp():
-    conn = yield from create_connection(('localhost', 8888), loop=loop)
-    yield from conn.execute('set', 'a', 2)
-    val = yield from conn.execute('hget', 'hash_name', 'hash_key')
+async def connect_tcp():
+    conn = await create_connection(('localhost', 8888), loop=loop)
+    await conn.execute('set', 'a', 2)
+    val = await conn.execute('hget', 'hash_name', 'hash_key')
     print(val)
 
     conn.close()
-    yield from conn.wait_closed()
+    await conn.wait_closed()
 
 loop.run_until_complete(connect_tcp())
 loop.close()

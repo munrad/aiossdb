@@ -53,13 +53,12 @@ class SSDBConnectionPool:
         self._closing = False
         self._closed = False
 
-    @asyncio.coroutine
-    def execute(self, command, *args, **kwargs):
-        conn, address = yield from self.get_connection()
+    async def execute(self, command, *args, **kwargs):
+        conn, address = await self.get_connection()
         try:
-            fut = yield from conn.execute(command, *args, **kwargs)
+            fut = await conn.execute(command, *args, **kwargs)
         finally:
-            yield from self.release(conn)
+            await self.release(conn)
         return fut
 
     @property
@@ -78,8 +77,7 @@ class SSDBConnectionPool:
     def size(self):
         return len(self._pool) + len(self._used)
 
-    @asyncio.coroutine
-    def get_connection(self):
+    async def get_connection(self):
         """获取连接，要么在空闲连接中直接获取，要么等待直到获得新的连接，
         不论如何获取的连接，都要进入used连接集合中, 然后使用完成之后返回pool可用连接中
 
@@ -94,17 +92,16 @@ class SSDBConnectionPool:
             self._used.add(conn)
             return conn, conn.address
         # 如果pool中已经没有可用连接了，动态获取连接
-        conn = yield from self.new_connection()
+        conn = await self.new_connection()
         return conn, conn.address
 
-    @asyncio.coroutine
-    def new_connection(self):
+    async def new_connection(self):
         """pool中无可用连接，在这里创建新连接填充pool
         有可能本身used的size已经是maxsize，则填充失败，需要监听release方法的信号通知
         来重新填充，最后返回一条连接"""
         if self.closed:
             raise PoolClosedError("Pool is closed")
-        with (yield from self._cond):
+        with (await self._cond):
             # 获得锁之后可能pool已经关闭，所以进行两遍检测
             if self.closed:
                 raise PoolClosedError("Pool is closed")
@@ -113,7 +110,7 @@ class SSDBConnectionPool:
             while 1:
                 # fill_free创建新连接,直接将pool的可用额度填满
                 # 有种情况就是self.size已经满了，但是都是在used，所以就得等待release
-                yield from self._fill_free(overall=True)
+                await self._fill_free(overall=True)
                 if self.freesize:
                     conn = self._pool.popleft()
                     # 排除一些错误情况
@@ -125,19 +122,18 @@ class SSDBConnectionPool:
                 else:
                     # 等待release的释放连接，然后调用notify方法来通知此处
                     # wait的时候会将lock释放
-                    yield from self._cond.wait()
+                    await self._cond.wait()
 
-    @asyncio.coroutine
-    def _fill_free(self, *, overall):
+    async def _fill_free(self, *, overall):
         """填充pool连接池,应该填充使得有可用连接，或者填充到self._minsize"""
         self._drop_closed()
         # 首先将size填充到最小连接数
         while self.size < self._minsize:
             try:
-                conn = yield from create_connection(self._address, password=self._password,
-                                                    encoding=self._encoding, parser=self._parser_class,
-                                                    loop=self._loop, timeout=self._timeout,
-                                                    connect_cls=self._connection_cls)
+                conn = await create_connection(
+                    self._address, password=self._password, encoding=self._encoding, parser=self._parser_class,
+                    loop=self._loop, timeout=self._timeout, connect_cls=self._connection_cls
+                )
             except Exception as e:
                 logger.error("create connection encountered error: {}".format(e))
             else:
@@ -148,17 +144,16 @@ class SSDBConnectionPool:
             # 一直填充到可用连接池中有连接，并且size应该小于最大size
             while not self._pool and self.size < self.maxsize:
                 try:
-                    conn = yield from create_connection(self._address, password=self._password,
-                                                        encoding=self._encoding, parser=self._parser_class,
-                                                        loop=self._loop, timeout=self._timeout,
-                                                        connect_cls=self._connection_cls)
+                    conn = await create_connection(
+                        self._address, password=self._password, encoding=self._encoding, parser=self._parser_class,
+                        loop=self._loop, timeout=self._timeout, connect_cls=self._connection_cls
+                    )
                 except Exception as e:
                     logger.error("create connection encountered error: {}".format(e))
                 else:
                     self._pool.append(conn)
 
-    @asyncio.coroutine
-    def release(self, conn):
+    async def release(self, conn):
         """将没有关闭的连接从used集合放回可用的pool中，或者关闭仍然有命令的连接
         并且给一个信号通知，这样获取新连接的方法就可以获取新连接"""
         # 关闭的时候已经清空pool和used了
@@ -176,9 +171,8 @@ class SSDBConnectionPool:
         # 在这里提供信号量通知
         asyncio.ensure_future(self._wake_up(), loop=self._loop)
 
-    @asyncio.coroutine
-    def _wake_up(self):
-        with (yield from self._cond):
+    async def _wake_up(self):
+        with (await self._cond):
             # 通知其他协程开始工作
             self._cond.notify()
 
@@ -204,10 +198,9 @@ class SSDBConnectionPool:
         self._closing = True
         self._waiter = asyncio.ensure_future(self._do_close(), loop=self._loop)
 
-    @asyncio.coroutine
-    def _do_close(self):
+    async def _do_close(self):
         """将所有的pool连接和used连接取出来，可能需要等待，加入期物列表"""
-        with (yield from self._cond):
+        with (await self._cond):
             waiters = []
             while self._pool:
                 conn = self._pool.popleft()
@@ -217,26 +210,25 @@ class SSDBConnectionPool:
             for conn in self._used:
                 conn.close()
                 waiters.append(conn.wait_closed())
-            yield from asyncio.gather(*waiters, loop=self._loop)
+            await asyncio.gather(*waiters, loop=self._loop)
             self._closed = True
 
-    @asyncio.coroutine
-    def wait_closed(self):
+    async def wait_closed(self):
         """等待直到连接池关闭，这里要等待的是所有连接池连接的关闭期物Future的完成"""
-        yield from asyncio.shield(self._waiter, loop=self._loop)
+        await asyncio.shield(self._waiter, loop=self._loop)
 
     @property
     def closed(self):
         return self._closing or self._closed
 
-    @asyncio.coroutine
-    def auth(self, password):
+    async def auth(self, password):
         """将pool里面的每个连接进行auth"""
         self._password = password
-        with (yield from self._cond):
+        with (await self._cond):
             for i in range(self.freesize):
-                yield from self._pool[i].auth(password)
+                await self._pool[i].auth(password)
 
     def __repr__(self):
-        return '<{} [size:[{}:{}], free:{}]>'.format(self.__class__.__name__,
-                                                     self._minsize, self._maxsize, self.freesize)
+        return '<{} [size:[{}:{}], free:{}]>'.format(
+            self.__class__.__name__, self._minsize, self._maxsize, self.freesize
+        )
