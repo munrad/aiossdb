@@ -92,10 +92,11 @@ class SSDBParser:
 
     def parse(self):
         size = yield from self.read_int()
-        status = yield from self.read_line(size)
-        if status.decode(self._sys_encoding) != 'ok':
+        status = (yield from self.read_line(size)).decode(self._sys_encoding)
+        if status == 'not_found':
+            return None
+        if status != 'ok':
             return ReplyError(status)
-        # TODO: status == 'not_found'?
         data = []
         try:
             # 可能没有数据，所以在读完状态后的值可能不是int，而是换行符

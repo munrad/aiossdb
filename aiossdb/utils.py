@@ -41,7 +41,7 @@ COMMANDS = {
     'hget': lambda x, **kwargs: x,
     'hdel': lambda x, **kwargs: x,
     'hincr': lambda x, **kwargs: x,
-    'hexists': lambda x, **kwargs: x,
+    'hexists': lambda x, **kwargs: to_bool(x),
     'hsize': lambda x, **kwargs: x,
     'hlist': lambda x, **kwargs: x,
     'hrlist': lambda x, **kwargs: x,
@@ -110,6 +110,13 @@ def list2dict(value, encoding='utf-8', binary=False, strict=False):
         return exc
 
 
+def to_bool(value):
+    try:
+        return int(value) == 1
+    except ValueError as exc:
+        return exc
+
+
 def opt_decode(value, encoding, strict):
     if encoding is None:
         return value
@@ -146,4 +153,9 @@ async def wait_ok(fut):
 
 
 def format_result(command, obj, **kwargs):
+    # TODO: Temporary here for all commands
+    # TODO: Some commands need to return a list even for a single value
+    if len(obj) == 1:
+        obj = obj[0]
+
     return COMMANDS[command](obj, **kwargs)
