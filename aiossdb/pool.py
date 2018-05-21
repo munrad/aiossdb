@@ -28,7 +28,7 @@ async def create_pool(address, *, password=None, encoding='utf-8', minsize=1, ma
 
 class SSDBConnectionPool:
 
-    def __init__(self, address, *, password=None, parser=None, encoding=None, minsize, maxsize,
+    def __init__(self, address, *, password=None, parser=None, encoding='utf-8', minsize, maxsize,
                  connection_cls=None, timeout=None, loop=None):
         assert isinstance(minsize, int) and minsize >= 0, ("minsize must be int >=0", minsize, type(minsize))
         assert isinstance(maxsize, int) and maxsize >= minsize, (

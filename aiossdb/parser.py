@@ -29,12 +29,12 @@ def encode_command(command, *args):
 
 
 class SSDBParser:
-    def __init__(self, encoding=None):
+    def __init__(self, encoding='utf-8'):
         # 字节数组
         self.buf = bytearray()
         self.pos = 0
         self._gen = None
-        self.encoding = encoding
+        self._sys_encoding = encoding
 
     def feed(self, data, o=0, l=-1):
         if l == -1:
@@ -78,9 +78,8 @@ class SSDBParser:
         # 读取一行后重置
         self.pos = 0
         # 删除该行数据
+        # TODO: Do not delete buffer, change position!
         del self.buf[:offset + 1]
-        if self.encoding:
-            val = val.decode(self.encoding)
         return val
 
     def read_int(self):
@@ -93,7 +92,9 @@ class SSDBParser:
 
     def parse(self):
         size = yield from self.read_int()
-        status = yield from self.read_line(size)
+        status = (yield from self.read_line(size)).decode(self._sys_encoding)
+        if status == 'not_found':
+            return None
         if status != 'ok':
             return ReplyError(status)
         data = []
