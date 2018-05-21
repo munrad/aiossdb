@@ -6,11 +6,10 @@ from collections import deque
 from .log import logger
 from .parser import SSDBParser, encode_command
 from .errors import ProtocolError, ReplyError, ConnectionClosedError
-from .utils import wait_ok, set_result, set_exception
+from .utils import wait_ok, set_result, set_exception, format_result
 
 
 MAX_CHUNK_SIZE = 65536
-_NOTSET = object()
 
 
 async def create_connection(address, *, password=None, encoding='utf-8', parser=None, loop=None,
@@ -72,7 +71,7 @@ async def create_connection(address, *, password=None, encoding='utf-8', parser=
 
 
 class SSDBConnection:
-    def __init__(self, reader, writer, *, address, encoding=None, parser=None, loop=None):
+    def __init__(self, reader, writer, *, address, encoding='utf-8', parser=None, loop=None):
         if loop is None:
             # 默认使用asyncio的事件循环
             loop = asyncio.get_event_loop()
@@ -136,14 +135,18 @@ class SSDBConnection:
 
     def _process_data(self, obj):
         assert len(self._waiters) > 0, (type(obj), obj)
-        waiter, encoding, command = self._waiters.popleft()
+        waiter, command, options = self._waiters.popleft()
         if isinstance(obj, ReplyError):
             obj.command = command
             set_exception(waiter, obj)
         else:
-            set_result(waiter, obj)
+            result = format_result(command, obj, **options)
+            if isinstance(result, Exception):
+                set_exception(waiter, result)
+            else:
+                set_result(waiter, result)
 
-    def execute(self, command, *args, encoding=_NOTSET):
+    def execute(self, command, *args, **kwargs):
         '''执行ssdb命令，返回期物等待结果'''
         if self._reader is None or self._reader.at_eof():
             raise ConnectionClosedError("Connection closed or corrupted")
@@ -154,13 +157,11 @@ class SSDBConnection:
         # 命令推荐小写
         command = command.lower().strip()
 
-        if encoding is _NOTSET:
-            encoding = self._encoding
         future = asyncio.Future(loop=self._loop)
         # 将命令和参数编码成协议要求的格式
         self._writer.write(encode_command(command, *args))
         # 将future进入队列，将来在接收到返回值的时候填充future
-        self._waiters.append((future, encoding, command))
+        self._waiters.append((future, command, kwargs))
         return future
 
     def auth(self, password):
