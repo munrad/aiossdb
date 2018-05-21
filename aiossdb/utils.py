@@ -2,102 +2,31 @@ import asyncio
 from .log import logger
 
 
+COMMAND_NAMES = [
+    'auth', 'dbsize', 'flushdb', 'info', 'slaveof', 'list_allow_ip', 'add_allow_ip', 'del_allow_ip', 'list_deny_ip',
+    'add_deny_ip', 'del_deny_ip', 'set', 'setx', 'setnx', 'expire', 'ttl', 'get', 'getset', 'del', 'incr', 'exists',
+    'getbit', 'setbit', 'bitcount', 'countbit', 'substr', 'strlen', 'keys', 'rkeys', 'scan', 'rscan', 'multi_set',
+    'multi_get', 'multi_del', 'hset', 'hget', 'hdel', 'hincr', 'hexists', 'hsize', 'hlist', 'hrlist', 'hkeys',
+    'hgetall', 'hscan', 'hrscan', 'hclear', 'multi_hset', 'multi_hget', 'multi_hdel', 'zset', 'zget', 'zdel', 'zincr',
+    'zexists', 'zsize', 'zlist', 'zrlist', 'zkeys', 'zscan', 'zrscan', 'zrank', 'zrrank', 'zrange', 'zrrange',
+    'zclear', 'zcount', 'zsum', 'zavg', 'zremrangebyrank', 'zremrangebyscore', 'zpop_front', 'zpop_back', 'multi_zset',
+    'multi_zget', 'multi_zdel', 'qpush_front', 'qpush_back', 'qpop_front', 'qpop_back', 'qpush', 'qpop', 'qfront',
+    'qback', 'qsize', 'qclear', 'qget', 'qset', 'qrange', 'qslice', 'qtrim_front', 'qtrim_back', 'qlist', 'qrlist'
+]
+
 COMMANDS = {
-    'auth': lambda x, **kwargs: x,
-    'dbsize': lambda x, **kwargs: x,
-    'flushdb': lambda x, **kwargs: x,
-    'info': lambda x, **kwargs: x,
-    'slaveof': lambda x, **kwargs: x,
-    'list_allow_ip': lambda x, **kwargs: x,
-    'add_allow_ip': lambda x, **kwargs: x,
-    'del_allow_ip': lambda x, **kwargs: x,
-    'list_deny_ip': lambda x, **kwargs: x,
-    'add_deny_ip': lambda x, **kwargs: x,
-    'del_deny_ip': lambda x, **kwargs: x,
-    'set': lambda x, **kwargs: x,
-    'setx': lambda x, **kwargs: x,
-    'setnx': lambda x, **kwargs: x,
-    'expire': lambda x, **kwargs: x,
-    'ttl': lambda x, **kwargs: x,
-    'get': lambda x, **kwargs: x,
-    'getset': lambda x, **kwargs: x,
-    'del': lambda x, **kwargs: x,
-    'incr': lambda x, **kwargs: x,
-    'exists': lambda x, **kwargs: x,
-    'getbit': lambda x, **kwargs: x,
-    'setbit': lambda x, **kwargs: x,
-    'bitcount': lambda x, **kwargs: x,
-    'countbit': lambda x, **kwargs: x,
-    'substr': lambda x, **kwargs: x,
-    'strlen': lambda x, **kwargs: x,
-    'keys': lambda x, **kwargs: x,
-    'rkeys': lambda x, **kwargs: x,
-    'scan': lambda x, **kwargs: x,
-    'rscan': lambda x, **kwargs: x,
-    'multi_set': lambda x, **kwargs: x,
-    'multi_get': lambda x, **kwargs: x,
-    'multi_del': lambda x, **kwargs: x,
-    'hset': lambda x, **kwargs: x,
-    'hget': lambda x, **kwargs: x,
-    'hdel': lambda x, **kwargs: x,
-    'hincr': lambda x, **kwargs: x,
-    'hexists': lambda x, **kwargs: to_bool(x),
-    'hsize': lambda x, **kwargs: x,
-    'hlist': lambda x, **kwargs: x,
-    'hrlist': lambda x, **kwargs: x,
-    'hkeys': lambda x, **kwargs: x,
+    'hexists': lambda x, **kwargs: to_bool(def_p(x)),
     'hgetall': lambda x, **kwargs: list2dict(x, **kwargs),
-    'hscan': lambda x, **kwargs: x,
-    'hrscan': lambda x, **kwargs: x,
-    'hclear': lambda x, **kwargs: x,
-    'multi_hset': lambda x, **kwargs: x,
     'multi_hget': lambda x, **kwargs: list2dict(x, **kwargs),
-    'multi_hdel': lambda x, **kwargs: x,
-    'zset': lambda x, **kwargs: x,
-    'zget': lambda x, **kwargs: x,
-    'zdel': lambda x, **kwargs: x,
-    'zincr': lambda x, **kwargs: x,
-    'zexists': lambda x, **kwargs: x,
-    'zsize': lambda x, **kwargs: x,
-    'zlist': lambda x, **kwargs: x,
-    'zrlist': lambda x, **kwargs: x,
-    'zkeys': lambda x, **kwargs: x,
-    'zscan': lambda x, **kwargs: x,
-    'zrscan': lambda x, **kwargs: x,
-    'zrank': lambda x, **kwargs: x,
-    'zrrank': lambda x, **kwargs: x,
-    'zrange': lambda x, **kwargs: x,
-    'zrrange': lambda x, **kwargs: x,
-    'zclear': lambda x, **kwargs: x,
-    'zcount': lambda x, **kwargs: x,
-    'zsum': lambda x, **kwargs: x,
-    'zavg': lambda x, **kwargs: x,
-    'zremrangebyrank': lambda x, **kwargs: x,
-    'zremrangebyscore': lambda x, **kwargs: x,
-    'zpop_front': lambda x, **kwargs: x,
-    'zpop_back': lambda x, **kwargs: x,
-    'multi_zset': lambda x, **kwargs: x,
-    'multi_zget': lambda x, **kwargs: x,
-    'multi_zdel': lambda x, **kwargs: x,
-    'qpush_front': lambda x, **kwargs: x,
-    'qpush_back': lambda x, **kwargs: x,
-    'qpop_front': lambda x, **kwargs: x,
-    'qpop_back': lambda x, **kwargs: x,
-    'qpush': lambda x, **kwargs: x,
-    'qpop': lambda x, **kwargs: x,
-    'qfront': lambda x, **kwargs: x,
-    'qback': lambda x, **kwargs: x,
-    'qsize': lambda x, **kwargs: x,
-    'qclear': lambda x, **kwargs: x,
-    'qget': lambda x, **kwargs: x,
-    'qset': lambda x, **kwargs: x,
-    'qrange': lambda x, **kwargs: x,
-    'qslice': lambda x, **kwargs: x,
-    'qtrim_front': lambda x, **kwargs: x,
-    'qtrim_back': lambda x, **kwargs: x,
-    'qlist': lambda x, **kwargs: x,
-    'qrlist': lambda x, **kwargs: x,
 }
+
+
+def def_p(value, **kwargs):
+    # TODO: Temporary here for all commands
+    # TODO: Some commands need to return a list even for a single value
+    if len(value) == 1:
+        value = value[0]
+    return value
 
 
 def list2dict(value, encoding='utf-8', binary=False, strict=False):
@@ -153,9 +82,5 @@ async def wait_ok(fut):
 
 
 def format_result(command, obj, **kwargs):
-    # TODO: Temporary here for all commands
-    # TODO: Some commands need to return a list even for a single value
-    if len(obj) == 1:
-        obj = obj[0]
-
-    return COMMANDS[command](obj, **kwargs)
+    processor = COMMANDS.get(command, def_p)
+    return processor(obj, **kwargs)
