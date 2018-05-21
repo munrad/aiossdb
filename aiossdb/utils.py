@@ -24,7 +24,7 @@ COMMANDS = {
 def def_p(value, **kwargs):
     # TODO: Temporary here for all commands
     # TODO: Some commands need to return a list even for a single value
-    if len(value) == 1:
+    if value and len(value) == 1:
         value = value[0]
     return value
 
