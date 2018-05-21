@@ -18,6 +18,8 @@ COMMANDS = {
     'hexists': lambda x, **kwargs: to_bool(def_p(x)),
     'hgetall': lambda x, **kwargs: list2dict(x, **kwargs),
     'multi_hget': lambda x, **kwargs: list2dict(x, **kwargs),
+    'get': lambda x, **kwargs: to_bool(def_p(x)),
+    'zget': lambda x, **kwargs: to_bool(def_p(x)),
 }
 
 
