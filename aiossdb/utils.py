@@ -18,13 +18,15 @@ COMMANDS = {
     'hexists': lambda x, **kwargs: to_bool(def_p(x)),
     'hgetall': lambda x, **kwargs: list2dict(x, **kwargs),
     'multi_hget': lambda x, **kwargs: list2dict(x, **kwargs),
+    'get': lambda x, **kwargs: to_bool(def_p(x)),
+    'zget': lambda x, **kwargs: to_bool(def_p(x)),
 }
 
 
 def def_p(value, **kwargs):
     # TODO: Temporary here for all commands
     # TODO: Some commands need to return a list even for a single value
-    if len(value) == 1:
+    if value and len(value) == 1:
         value = value[0]
     return value
 
