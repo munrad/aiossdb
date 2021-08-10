@@ -4,7 +4,7 @@ from .parser import SSDBParser
 from .pool import create_pool, SSDBConnectionPool
 from .client import Client
 
-__version__ = '0.0.2'
+__version__ = '0.0.9'
 __author__ = 'Kevin Du'
 __email__ = 'dgt_x@foxmail.com'
 __licence__ = 'MIT'
