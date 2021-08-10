@@ -142,7 +142,7 @@ class SSDBConnectionPool:
             return
         if overall:
             # 一直填充到可用连接池中有连接，并且size应该小于最大size
-            while self.size < self.maxsize:
+            while not self._pool and self.size < self.maxsize:
                 try:
                     conn = await create_connection(
                         self._address, password=self._password, encoding=self._encoding, parser=self._parser_class,
