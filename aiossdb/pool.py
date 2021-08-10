@@ -101,7 +101,7 @@ class SSDBConnectionPool:
         来重新填充，最后返回一条连接"""
         if self.closed:
             raise PoolClosedError("Pool is closed")
-        with (await self._cond):
+        async with self._cond:
             # 获得锁之后可能pool已经关闭，所以进行两遍检测
             if self.closed:
                 raise PoolClosedError("Pool is closed")
@@ -172,7 +172,7 @@ class SSDBConnectionPool:
         asyncio.ensure_future(self._wake_up(), loop=self._loop)
 
     async def _wake_up(self):
-        with (await self._cond):
+        async with self._cond:
             # 通知其他协程开始工作
             self._cond.notify()
 
@@ -200,7 +200,7 @@ class SSDBConnectionPool:
 
     async def _do_close(self):
         """将所有的pool连接和used连接取出来，可能需要等待，加入期物列表"""
-        with (await self._cond):
+        async with self._cond:
             waiters = []
             while self._pool:
                 conn = self._pool.popleft()
@@ -224,7 +224,7 @@ class SSDBConnectionPool:
     async def auth(self, password):
         """将pool里面的每个连接进行auth"""
         self._password = password
-        with (await self._cond):
+        async with self._cond:
             for i in range(self.freesize):
                 await self._pool[i].auth(password)
 
