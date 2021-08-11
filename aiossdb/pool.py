@@ -20,6 +20,7 @@ async def create_pool(address, *, password=None, encoding='utf-8', minsize=1, ma
         # 填充至最小minsize的大小
         await pool._fill_free(overall=False)
     except Exception as e:
+        print(e)
         pool.close()
         await pool.wait_closed()
         raise
@@ -57,6 +58,7 @@ class SSDBConnectionPool:
         conn, address = await self.get_connection()
         try:
             fut = await conn.execute(command, *args, **kwargs)
+            print(f'execute {conn}')
         finally:
             await self.release(conn)
         return fut
@@ -90,6 +92,7 @@ class SSDBConnectionPool:
             if conn.closed:
                 continue
             self._used.add(conn)
+            print(f'get_connection {conn}')
             return conn, conn.address
         # 如果pool中已经没有可用连接了，动态获取连接
         conn = await self.new_connection()
@@ -126,8 +129,11 @@ class SSDBConnectionPool:
 
     async def _fill_free(self, *, overall):
         """填充pool连接池,应该填充使得有可用连接，或者填充到self._minsize"""
+        print('-------------------_fill_free start-------------------')
         self._drop_closed()
         # 首先将size填充到最小连接数
+        print(f'{self.size=}')
+        print(f'{self._minsize=}')
         while self.size < self._minsize:
             try:
                 conn = await create_connection(
@@ -139,6 +145,7 @@ class SSDBConnectionPool:
             else:
                 self._pool.append(conn)
         if self.freesize:
+            print('-------------------_fill_free end-------------------')
             return
         if overall:
             # 一直填充到可用连接池中有连接，并且size应该小于最大size
@@ -152,6 +159,7 @@ class SSDBConnectionPool:
                     logger.error("create connection encountered error: {}".format(e))
                 else:
                     self._pool.append(conn)
+        print('-------------------_fill_free end-------------------')
 
     async def release(self, conn):
         """将没有关闭的连接从used集合放回可用的pool中，或者关闭仍然有命令的连接
@@ -159,7 +167,8 @@ class SSDBConnectionPool:
         # 关闭的时候已经清空pool和used了
         if self.closed:
             raise PoolClosedError("Pool is closed")
-        # assert conn in self._used, ("Invalid connection, maybe from other pool", conn)
+
+        assert conn in self._used, ("Invalid connection, maybe from other pool", conn)
         if conn in self._used:
             self._used.remove(conn)
         # 如果连接还未关闭，则置入可用连接池
@@ -168,6 +177,10 @@ class SSDBConnectionPool:
         else:
             # 如果已经关闭，则不管理
             logger.warn("Connection {} has been closed".format(conn))
+
+        print(f'release {self._pool}')
+        print(f'release {self._used}')
+        print(f'release {conn}')
 
         # 在这里提供信号量通知
         asyncio.ensure_future(self._wake_up(), loop=self._loop)
@@ -180,6 +193,7 @@ class SSDBConnectionPool:
     def _drop_closed(self):
         """清除关闭的连接，pool里的和used的"""
         for i in range(self.freesize):
+            print(f'_drop_closed {self._pool}')
             conn = self._pool[0]
             if conn.closed:
                 self._pool.popleft()
@@ -192,6 +206,7 @@ class SSDBConnectionPool:
             if conn.closed:
                 _closed_used.add(conn)
         # 两者求差集
+        print(f'_drop_closed {_closed_used}')
         self._used = self._used.difference(_closed_used)
 
     def close(self):

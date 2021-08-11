@@ -98,7 +98,9 @@ class SSDBConnection:
         self._closed = False
 
     def __repr__(self):
-        return '<SSDBConnection [host:{}-port:{}]>'.format(self._address[0], self._address[1])
+        return f'<SSDBConnection ' \
+               f'[host:{self._address[0]}-port:{self._address[1]}' \
+               f'-closing:{self._closing}-closed:{self._closed}]>'
 
     async def _read_data(self):
         # 在一个套接字生存期中，无限循环，直到断开连接，接收到EOF字符
@@ -122,9 +124,11 @@ class SSDBConnection:
             while 1:
                 try:
                     obj = self._parser.gets()
+                    print(f'_read_data {obj}')
                 except ProtocolError as e:
-                    self._do_close(e)
-                    return
+                    # self._do_close(e)
+                    # return
+                    break
                 else:
                     if obj is False:
                         break
@@ -156,12 +160,13 @@ class SSDBConnection:
             raise TypeError("args must not contain None")
         # 命令推荐小写
         command = command.lower().strip()
-
         future = asyncio.Future(loop=self._loop)
         # 将命令和参数编码成协议要求的格式
         self._writer.write(encode_command(command, *args))
         # 将future进入队列，将来在接收到返回值的时候填充future
         self._waiters.append((future, command, kwargs))
+        print(f'{self._closed=}')
+        print(f'{self._closing=}')
         return future
 
     def auth(self, password):
@@ -172,6 +177,7 @@ class SSDBConnection:
         self._do_close(None)
 
     def _do_close(self, exc):
+        print(f'_do_close {exc}')
         if self._closed:
             return
         self._closing = True
@@ -183,6 +189,7 @@ class SSDBConnection:
         self._reader = None
         while self._waiters:
             # 将队列中还有的期物弹出并且取消
+            print(f'_do_close {self._waiters}')
             waiter, *spam = self._waiters.popleft()
             logger.debug("Cancelling waiter %r", (waiter, spam))
             if exc is None:
