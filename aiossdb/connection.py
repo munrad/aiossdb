@@ -124,11 +124,9 @@ class SSDBConnection:
             while 1:
                 try:
                     obj = self._parser.gets()
-                    print(f'_read_data {obj}')
                 except ProtocolError as e:
-                    # self._do_close(e)
-                    # return
-                    break
+                    self._do_close(e)
+                    return
                 else:
                     if obj is False:
                         break
