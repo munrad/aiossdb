@@ -94,8 +94,10 @@ class SSDBParser:
         size = yield from self.read_int()
         status = (yield from self.read_line(size)).decode(self._sys_encoding)
         if status == 'not_found':
+            self.buf = bytearray()
             return None
         if status != 'ok':
+            self.buf = bytearray()
             return ReplyError(status)
         data = []
         try:

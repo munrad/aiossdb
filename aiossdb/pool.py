@@ -159,7 +159,8 @@ class SSDBConnectionPool:
         # 关闭的时候已经清空pool和used了
         if self.closed:
             raise PoolClosedError("Pool is closed")
-        # assert conn in self._used, ("Invalid connection, maybe from other pool", conn)
+
+        assert conn in self._used, ("Invalid connection, maybe from other pool", conn)
         if conn in self._used:
             self._used.remove(conn)
         # 如果连接还未关闭，则置入可用连接池

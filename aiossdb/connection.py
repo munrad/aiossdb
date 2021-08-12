@@ -98,7 +98,9 @@ class SSDBConnection:
         self._closed = False
 
     def __repr__(self):
-        return '<SSDBConnection [host:{}-port:{}]>'.format(self._address[0], self._address[1])
+        return f'<SSDBConnection ' \
+               f'[host:{self._address[0]}-port:{self._address[1]}' \
+               f'-closing:{self._closing}-closed:{self._closed}]>'
 
     async def _read_data(self):
         # 在一个套接字生存期中，无限循环，直到断开连接，接收到EOF字符
@@ -156,7 +158,6 @@ class SSDBConnection:
             raise TypeError("args must not contain None")
         # 命令推荐小写
         command = command.lower().strip()
-
         future = asyncio.Future(loop=self._loop)
         # 将命令和参数编码成协议要求的格式
         self._writer.write(encode_command(command, *args))
