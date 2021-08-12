@@ -163,8 +163,6 @@ class SSDBConnection:
         self._writer.write(encode_command(command, *args))
         # 将future进入队列，将来在接收到返回值的时候填充future
         self._waiters.append((future, command, kwargs))
-        print(f'{self._closed=}')
-        print(f'{self._closing=}')
         return future
 
     def auth(self, password):
@@ -175,7 +173,6 @@ class SSDBConnection:
         self._do_close(None)
 
     def _do_close(self, exc):
-        print(f'_do_close {exc}')
         if self._closed:
             return
         self._closing = True
@@ -187,7 +184,6 @@ class SSDBConnection:
         self._reader = None
         while self._waiters:
             # 将队列中还有的期物弹出并且取消
-            print(f'_do_close {self._waiters}')
             waiter, *spam = self._waiters.popleft()
             logger.debug("Cancelling waiter %r", (waiter, spam))
             if exc is None:
